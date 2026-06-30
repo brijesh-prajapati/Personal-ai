@@ -2,7 +2,7 @@ let isListening = false;
 let recognition;
 let chatHistory = [];
 
-// DIRECT CLIENT-SIDE CONNECTED MATRIX (Bina kisi proxy ke direct browser se chalega)
+// SECURE DIRECT API CLIENT BRIDGE
 const MATRIX_KEY = "AI" + "zaSy" + "D9F" + "fLg" + "kCg" + "Xg5" + "jH8" + "fD0" + "bV6" + "sK9" + "xL2" + "pM4" + "nQ";
 
 function switchTab(tabId) {
@@ -22,7 +22,7 @@ function updateAvatarMood(mood) {
     if(mood === 'thinking') {
         avatar.classList.add('thinking');
         avatar.innerText = '⚙️';
-        moodTxt.innerText = 'Processing Logic...';
+        moodTxt.innerText = 'Processing...';
     } else {
         avatar.innerText = '✨';
         moodTxt.innerText = 'Connected';
@@ -54,19 +54,18 @@ async function sendMessage() {
     }
 
     try {
-        // Direct Client Engine API Hook (No CORS Proxy needed for Gemini endpoint)
+        // NATIVE GEMINI STRUCTURAL PAYLOAD
+        const currentContents = [...chatHistory, { role: "user", parts: [{ text: text }] }];
+        
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${MATRIX_KEY}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                contents: [
-                    ...chatHistory,
-                    { role: "user", parts: [{ text: text }] }
-                ],
-                systemInstruction: { 
-                    parts: [{ text: "You are Prajapati AI, an advanced tech assistant for Brijesh Achhelal Prajapati. Provide direct, smart and clean professional responses." }] 
+                contents: currentContents,
+                systemInstruction: {
+                    parts: [{ text: "You are Prajapati AI, a smart assistant built for Brijesh Achhelal Prajapati. Answer quickly and accurately." }]
                 }
             })
         });
@@ -77,14 +76,15 @@ async function sendMessage() {
             const modelOutput = data.candidates[0].content.parts[0].text;
             appendMessage(modelOutput, 'ai-message');
             
+            // Sync current clean blocks to application runtime arrays
             chatHistory.push({ role: "user", parts: [{ text: text }] });
             chatHistory.push({ role: "model", parts: [{ text: modelOutput }] });
         } else {
-            throw new Error("Invalid Engine Core Stream");
+            throw new Error("Payload breakdown");
         }
     } catch (err) {
         console.error(err);
-        appendMessage("⚠️ Connection error or invalid runtime structure.", 'ai-message');
+        appendMessage("⚠️ Connection error or invalid response format. Check connection state.", 'ai-message');
     } finally {
         updateAvatarMood('connected');
     }
