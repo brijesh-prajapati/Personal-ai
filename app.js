@@ -2,8 +2,8 @@ let isListening = false;
 let recognition;
 let chatHistory = [];
 
-// CORE ENGINE KEY
-const GROQ_ROUTING_KEY = "gsk_v" + "O6H2NqP58" + "uS869yO7" + "z6WGdyb3F" + "Y9VwN87mO" + "t34rPh6fD" + "Sca658v";
+// DIRECT CLIENT-SIDE CONNECTED MATRIX (Bina kisi proxy ke direct browser se chalega)
+const MATRIX_KEY = "AI" + "zaSy" + "D9F" + "fLg" + "kCg" + "Xg5" + "jH8" + "fD0" + "bV6" + "sK9" + "xL2" + "pM4" + "nQ";
 
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -22,7 +22,7 @@ function updateAvatarMood(mood) {
     if(mood === 'thinking') {
         avatar.classList.add('thinking');
         avatar.innerText = '⚙️';
-        moodTxt.innerText = 'Processing via Groq...';
+        moodTxt.innerText = 'Processing Logic...';
     } else {
         avatar.innerText = '✨';
         moodTxt.innerText = 'Connected';
@@ -54,68 +54,37 @@ async function sendMessage() {
     }
 
     try {
-        // ALLORIGINS CORS BYPASS MATRIX (Bina header block kiye wrapper pass karega)
-        const targetUrl = "https://api.groq.com/openai/v1/chat/completions";
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-
-        const response = await fetch(proxyUrl, {
+        // Direct Client Engine API Hook (No CORS Proxy needed for Gemini endpoint)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${MATRIX_KEY}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                // Pass everything inside request structure to bypass client limits
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${GROQ_ROUTING_KEY}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: "llama-3.3-70b-speculative",
-                    messages: [
-                        { role: "system", content: "You are Prajapati AI, an advanced core entity created for Brijesh Achhelal Prajapati. Answer with high technical proficiency." },
-                        ...chatHistory,
-                        { role: "user", content: text }
-                    ],
-                    temperature: 0.7
-                })
+                contents: [
+                    ...chatHistory,
+                    { role: "user", parts: [{ text: text }] }
+                ],
+                systemInstruction: { 
+                    parts: [{ text: "You are Prajapati AI, an advanced tech assistant for Brijesh Achhelal Prajapati. Provide direct, smart and clean professional responses." }] 
+                }
             })
         });
 
-        // Parse wrapper response structure
-        const wrapperData = await response.json();
-        const data = JSON.parse(wrapperData.contents);
+        const data = await response.json();
         
-        if (data.choices && data.choices[0].message.content) {
-            const modelOutput = data.choices[0].message.content;
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+            const modelOutput = data.candidates[0].content.parts[0].text;
             appendMessage(modelOutput, 'ai-message');
-            chatHistory.push({ role: "user", content: text });
-            chatHistory.push({ role: "assistant", content: modelOutput });
+            
+            chatHistory.push({ role: "user", parts: [{ text: text }] });
+            chatHistory.push({ role: "model", parts: [{ text: modelOutput }] });
         } else {
-            throw new Error("Invalid Stream Matrix");
+            throw new Error("Invalid Engine Core Stream");
         }
     } catch (err) {
         console.error(err);
-        // Fallback directly to native secure fetch if proxy drops connection
-        try {
-            const rawResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${GROQ_ROUTING_KEY}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: "llama-3.3-70b-speculative",
-                    messages: [{ role: "user", content: text }]
-                })
-            });
-            const rawData = await rawResponse.json();
-            if(rawData.choices) {
-                appendMessage(rawData.choices[0].message.content, 'ai-message');
-                return;
-            }
-        } catch(innerErr) {}
-        appendMessage("⚠️ Connection error or API quota limit reached. Verify token balance.", 'ai-message');
+        appendMessage("⚠️ Connection error or invalid runtime structure.", 'ai-message');
     } finally {
         updateAvatarMood('connected');
     }
