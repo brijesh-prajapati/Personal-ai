@@ -2,7 +2,7 @@ let isListening = false;
 let recognition;
 let chatHistory = [];
 
-// DIRECT BYPASS ENCRYPTION LAYER
+// CORE ENGINE KEY
 const GROQ_ROUTING_KEY = "gsk_v" + "O6H2NqP58" + "uS869yO7" + "z6WGdyb3F" + "Y9VwN87mO" + "t34rPh6fD" + "Sca658v";
 
 function switchTab(tabId) {
@@ -54,28 +54,37 @@ async function sendMessage() {
     }
 
     try {
-        // CORS BYPASS PROXY HOOK
-        const proxyUrl = "https://corsproxy.io/?";
+        // ALLORIGINS CORS BYPASS MATRIX (Bina header block kiye wrapper pass karega)
         const targetUrl = "https://api.groq.com/openai/v1/chat/completions";
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
-        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+        const response = await fetch(proxyUrl, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${GROQ_ROUTING_KEY}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.3-70b-speculative",
-                messages: [
-                    { role: "system", content: "You are Prajapati AI, an advanced core entity created for Brijesh Achhelal Prajapati. Answer with high technical proficiency." },
-                    ...chatHistory,
-                    { role: "user", content: text }
-                ],
-                temperature: 0.7
+                // Pass everything inside request structure to bypass client limits
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${GROQ_ROUTING_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-speculative",
+                    messages: [
+                        { role: "system", content: "You are Prajapati AI, an advanced core entity created for Brijesh Achhelal Prajapati. Answer with high technical proficiency." },
+                        ...chatHistory,
+                        { role: "user", content: text }
+                    ],
+                    temperature: 0.7
+                })
             })
         });
 
-        const data = await response.json();
+        // Parse wrapper response structure
+        const wrapperData = await response.json();
+        const data = JSON.parse(wrapperData.contents);
         
         if (data.choices && data.choices[0].message.content) {
             const modelOutput = data.choices[0].message.content;
@@ -83,10 +92,29 @@ async function sendMessage() {
             chatHistory.push({ role: "user", content: text });
             chatHistory.push({ role: "assistant", content: modelOutput });
         } else {
-            throw new Error("Invalid payload mapping");
+            throw new Error("Invalid Stream Matrix");
         }
     } catch (err) {
         console.error(err);
+        // Fallback directly to native secure fetch if proxy drops connection
+        try {
+            const rawResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${GROQ_ROUTING_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-speculative",
+                    messages: [{ role: "user", content: text }]
+                })
+            });
+            const rawData = await rawResponse.json();
+            if(rawData.choices) {
+                appendMessage(rawData.choices[0].message.content, 'ai-message');
+                return;
+            }
+        } catch(innerErr) {}
         appendMessage("⚠️ Connection error or API quota limit reached. Verify token balance.", 'ai-message');
     } finally {
         updateAvatarMood('connected');
@@ -141,4 +169,3 @@ function toggleVoiceInput() {
         if(recognition) recognition.stop();
     }
 }
-    
